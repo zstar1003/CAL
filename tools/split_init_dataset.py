@@ -6,12 +6,12 @@ from tqdm import tqdm
 random.seed(1003)
 
 # 图片和标签原始存储路径
-source_images_folder = '../dataset/VisDrone/train/images'
-source_labels_folder = '../dataset/VisDrone/train/labels'
+source_images_folder = '../dataset/VOC2007/train/images'
+source_labels_folder = '../dataset/VOC2007/train/labels'
 
 # 目标路径，用于存放随机选取的图片和标签
-target_images_folder = '../dataset/VisDrone_part/init/images'
-target_labels_folder = '../dataset/VisDrone_part/init/labels'
+target_images_folder = '../dataset/VOC2007_part/init/images'
+target_labels_folder = '../dataset/VOC2007_part/init/labels'
 
 # 确保目标文件夹存在
 os.makedirs(target_images_folder, exist_ok=True)
@@ -19,8 +19,8 @@ os.makedirs(target_labels_folder, exist_ok=True)
 
 # 获取原始图片文件夹中所有图片的文件名
 image_files = os.listdir(source_images_folder)
-# 随机选取100张图片
-selected_images = random.sample(image_files, 100)
+# 随机选取00张图片
+selected_images = random.sample(image_files, 500)
 
 for image_file in tqdm(selected_images):
     # 构造原始图片和标签的完整路径
@@ -35,4 +35,4 @@ for image_file in tqdm(selected_images):
     shutil.copy2(source_image_path, target_image_path)
     shutil.copy2(source_label_path, target_label_path)
 
-print("完成")
+print("Done")

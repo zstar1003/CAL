@@ -70,7 +70,7 @@ def select_and_copy_files(source_images_folder, source_labels_folder, target_ima
             confidences = pred[:, 4].cpu().numpy()
             file_entropy = entropy(confidences)
         else:
-            file_entropy = 0  # No detections lead to minimum entropy
+            file_entropy = 1e-9  # No detections lead to minimum entropy
         file_confidences.append((file, file_entropy))
 
     selected_files = [file for file, _ in sorted(file_confidences, key=lambda x: -x[1])[:n]]

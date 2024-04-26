@@ -37,7 +37,8 @@ def mean_shift_clustering(features):
     """
     使用Mean Shift进行聚类
     """
-    bandwidth = estimate_bandwidth(features, quantile=0.2, n_samples=500)
+    bandwidth = estimate_bandwidth(features, quantile=0.05)
+    print(bandwidth)
     ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
     ms.fit(features)
     labels = ms.labels_
@@ -75,7 +76,7 @@ def select_and_copy_files(source_images_folder, source_labels_folder, target_ima
     available_labels = source_labels - existing_labels
     # Ensure the filenames without extension match between images and labels
     available_files = set(file.split('.')[0] for file in available_images) & set(file.split('.')[0] for file in available_labels)
-
+    available_files = list(available_files)
     # 提取目标域的特征
     features = []
     for file in tqdm(available_files):
@@ -86,6 +87,7 @@ def select_and_copy_files(source_images_folder, source_labels_folder, target_ima
         features.append(feature)
     features = np.array(features)
     features_2d = convert_features(features)
+    # features_2d = features_2d.astype(np.int8)
     labels = mean_shift_clustering(features_2d)
     print(f"Number of clusters: {len(np.unique(labels))}")
     # 平衡选择样本
@@ -93,6 +95,7 @@ def select_and_copy_files(source_images_folder, source_labels_folder, target_ima
     selected_files = [available_files[i] for i in selected_indices]
     # Copy the selected images and labels to the target folders
     for file in tqdm(selected_files):
+        file = f"{file}.jpg"
         image_file = file
         label_file = file.replace('.jpg', '.txt')
         shutil.copy(os.path.join(source_images_folder, image_file), os.path.join(copy_images_folder, image_file))
@@ -119,4 +122,3 @@ if __name__ == '__main__':
     copy_labels_folder = "../dataset/VisDrone_part/cluster_select/1/labels"
     pic_num = 100  # 图片数量
     select_and_copy_files(source_images_folder, source_labels_folder, target_images_folder, target_labels_folder, copy_images_folder, copy_labels_folder, model, device, n=pic_num)
-

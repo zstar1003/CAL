@@ -23,7 +23,6 @@ def extract_features(model, img):
 def calculate_feature_distance(features1, features2):
     """
     Calculate the distance between two sets of features.
-    Here we use Euclidean distance, but other metrics like cosine similarity could also be used.
     """
     return torch.norm(features1 - features2, p=2, dim=1)  # Euclidean distance
 
@@ -95,9 +94,11 @@ def select_and_copy_files(source_images_folder, source_labels_folder, target_ima
     for file in tqdm(selected_files):
         image_file = file
         label_file = file.replace('.jpg', '.txt')
-        shutil.copy(os.path.join(source_images_folder, image_file), os.path.join(copy_images_folder, image_file))
-        shutil.copy(os.path.join(source_labels_folder, label_file), os.path.join(copy_labels_folder, label_file))
-
+        try:
+            shutil.copy(os.path.join(source_images_folder, image_file), os.path.join(copy_images_folder, image_file))
+            shutil.copy(os.path.join(source_labels_folder, label_file), os.path.join(copy_labels_folder, label_file))
+        except:
+            pass
 
 if __name__ == '__main__':
     # Setup device and model
