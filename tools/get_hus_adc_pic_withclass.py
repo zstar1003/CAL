@@ -286,9 +286,9 @@ def select_and_copy_files(source_images_folder, source_labels_folder, target_ima
         file_inconsistency = normalize(file_inconsistency, total_file_inconsistency)
         file_entropy = normalize(file_entropy, total_file_entropy)
         score = normalize(score, total_score)
-        print(distance, file_inconsistency, file_entropy, score)
-        print("-------")
-        file_inconsistency = distance + file_inconsistency * file_entropy + score  # 不一致方差*熵
+        # print(distance, file_inconsistency, file_entropy, score)
+        # print("-------")
+        file_inconsistency = 1 * distance + 2 * file_inconsistency * file_entropy + 1 * score
         file_inconsistencies.append((file, file_inconsistency))
     # Select files with the highest inconsistency
     selected_files = [file for file, _ in sorted(file_inconsistencies, key=lambda x: -x[1])[:n]]

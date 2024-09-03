@@ -133,7 +133,7 @@ def select_device(device='', batch_size=0, newline=True):
 
     if not newline:
         s = s.rstrip()
-    LOGGER.info(s)
+    # LOGGER.info(s)
     return torch.device(arg)
 
 
@@ -238,7 +238,7 @@ def prune(model, amount=0.3):
         if isinstance(m, nn.Conv2d):
             prune.l1_unstructured(m, name='weight', amount=amount)  # prune
             prune.remove(m, 'weight')  # make permanent
-    LOGGER.info(f'Model pruned to {sparsity(model):.3g} global sparsity')
+    # LOGGER.info(f'Model pruned to {sparsity(model):.3g} global sparsity')
 
 
 def fuse_conv_and_bn(conv, bn):
@@ -287,7 +287,7 @@ def model_info(model, verbose=False, imgsz=640):
         fs = ''
 
     name = Path(model.yaml_file).stem.replace('yolov5', 'YOLOv5') if hasattr(model, 'yaml_file') else 'Model'
-    LOGGER.info(f"{name} summary: {len(list(model.modules()))} layers, {n_p} parameters, {n_g} gradients{fs}")
+    # LOGGER.info(f"{name} summary: {len(list(model.modules()))} layers, {n_p} parameters, {n_g} gradients{fs}")
 
 
 def scale_img(img, ratio=1.0, same_shape=False, gs=32):  # img(16,3,256,416)
@@ -438,8 +438,8 @@ def smart_optimizer(model, name='Adam', lr=0.001, momentum=0.9, decay=1e-5):
 
     optimizer.add_param_group({'params': g[0], 'weight_decay': decay})  # add g0 with weight_decay
     optimizer.add_param_group({'params': g[1], 'weight_decay': 0.0})  # add g1 (BatchNorm2d weights)
-    LOGGER.info(f"{colorstr('optimizer:')} {type(optimizer).__name__}(lr={lr}) with parameter groups "
-                f"{len(g[1])} weight(decay=0.0), {len(g[0])} weight(decay={decay}), {len(g[2])} bias")
+    # LOGGER.info(f"{colorstr('optimizer:')} {type(optimizer).__name__}(lr={lr}) with parameter groups "
+    #             f"{len(g[1])} weight(decay=0.0), {len(g[0])} weight(decay={decay}), {len(g[2])} bias")
     return optimizer
 
 
@@ -468,9 +468,9 @@ def smart_resume(ckpt, optimizer, ema=None, weights='yolov5s.pt', epochs=300, re
     if resume:
         assert start_epoch > 0, f'{weights} training to {epochs} epochs is finished, nothing to resume.\n' \
                                 f"Start a new training without --resume, i.e. 'python train.py --weights {weights}'"
-        LOGGER.info(f'Resuming training from {weights} from epoch {start_epoch} to {epochs} total epochs')
+        # LOGGER.info(f'Resuming training from {weights} from epoch {start_epoch} to {epochs} total epochs')
     if epochs < start_epoch:
-        LOGGER.info(f"{weights} has been trained for {ckpt['epoch']} epochs. Fine-tuning for {epochs} more epochs.")
+        # LOGGER.info(f"{weights} has been trained for {ckpt['epoch']} epochs. Fine-tuning for {epochs} more epochs.")
         epochs += ckpt['epoch']  # finetune additional epochs
     return best_fitness, start_epoch, epochs
 
