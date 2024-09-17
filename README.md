@@ -41,6 +41,8 @@ The trained weights can be downloaded from [BaiDu](https://pan.baidu.com/s/1uveT
 python YOLOv9/tools/final_disturbance.py  
 ```
 
+7. train the model with initial sample and sample selected by active learning.
+
 Evaluation and Inference is same as [YOLOv9](https://github.com/WongKinYiu/yolov9/blob/main/README.md).
 
 ### Other Detectors
