@@ -57,12 +57,12 @@ def add_noise(features, noise_level=0.1):
     noise = torch.randn_like(features) * noise_level
     return features + noise
 
-def spatial_dropout(features, p=0.2):
-    drop_mask_width = (torch.rand(features.size(0), features.size(1), 1, features.size(3), device=features.device) > p).float()
-    drop_mask_height = (torch.rand(features.size(0), features.size(1), features.size(2), 1, device=features.device) > p).float()
+def spatial_dropout(features, p=0.1):
+    drop_mask_width = (torch.rand(features.size(0), 1, features.size(1), device=features.device) > p).float()
+    drop_mask_height = (torch.rand(features.size(0), features.size(1), 1, device=features.device) > p).float()
     return features * drop_mask_width * drop_mask_height
 
-def channel_wise_dropout(features, p=0.2):
+def channel_dropout(features, p=0.1):
     mask = torch.ones_like(features)
     mask = torch.nn.functional.dropout2d(mask, p=p, training=True)
     return features * mask
@@ -85,7 +85,7 @@ def calculate_entropy(features):
 
 
 def select_and_copy_files(source_images_folder, source_labels_folder, target_images_folder, target_labels_folder,
-                          copy_images_folder, copy_labels_folder, model_backbone, device, n=100, perturbation_methods=None):
+                          copy_images_folder, copy_labels_folder, model_backbone, device, n=100, perturbation_methods=None, spatial_dropout_probability=0.1, channel_dropout_probability=0.1, noise_level=0.1):
     if perturbation_methods is None:
         perturbation_methods = []
     # 读取源文件夹中的所有文件
@@ -136,10 +136,10 @@ def select_and_copy_files(source_images_folder, source_labels_folder, target_ima
             perturbed_features = add_noise(perturbed_features)
 
         if 'spatial_dropout' in perturbation_methods:
-            perturbed_features = spatial_dropout(perturbed_features)
+            perturbed_features = spatial_dropout(perturbed_features, spatial_dropout_probability)
 
-        if 'channel_wise_dropout' in perturbation_methods:
-            perturbed_features = channel_wise_dropout(perturbed_features)
+        if 'channel_dropout' in perturbation_methods:
+            perturbed_features = channel_dropout(perturbed_features, channel_dropout_probability)
 
         # 初始化组合模型，并传入扰动后的特征
         combined_model = DetectionModelCombined(cfg=args.model, backbone_features=perturbed_features).to(device)
@@ -153,7 +153,7 @@ def select_and_copy_files(source_images_folder, source_labels_folder, target_ima
                 pred = non_max_suppression(pred, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, max_det=1000)[0]
                 if pred is not None and len(pred):
                     confidences = pred[:, 4]  # 获取原始置信度
-                    perturbed_confidences = add_noise_to_confidence(confidences, noise_level=0.1)
+                    perturbed_confidences = add_noise_to_confidence(confidences, noise_level=noise_level)
                     original_conf_entropy = calculate_entropy(confidences.unsqueeze(0))  # 计算原始置信度的信息熵
                     perturbed_conf_entropy = calculate_entropy(perturbed_confidences.unsqueeze(0))  # 计算扰动后置信度的信息熵
                     entropy_diff = torch.abs(perturbed_conf_entropy - original_conf_entropy).mean().item()
@@ -182,17 +182,20 @@ def select_and_copy_files(source_images_folder, source_labels_folder, target_ima
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Apply various perturbations to images, features, and model outputs.')
-    parser.add_argument('--weights', type=str, default="YOLOv9/weights/visdrone_init.pt", help='Path to the model weights file.')
-    parser.add_argument('--data', type=str, default='YOLOv9/data/VisDrone.yaml', help='Path to the dataset configuration file.')
-    parser.add_argument('--model', type=str, default='YOLOv9/models/detect/yolov9-c.yaml', help='Path to the model configuration file.')
+    parser.add_argument('--weights', type=str, default="weights/visdrone_init.pt", help='Path to the model weights file.')
+    parser.add_argument('--data', type=str, default='data/VisDrone.yaml', help='Path to the dataset configuration file.')
+    parser.add_argument('--model', type=str, default='models/detect/yolov9-c.yaml', help='Path to the model configuration file.')
     parser.add_argument('--source_images_folder', type=str, default="dataset/VisDrone/train/images", help='Path to the source images folder.')
     parser.add_argument('--source_labels_folder', type=str, default="dataset/VisDrone/train/labels", help='Path to the source labels folder.')
     parser.add_argument('--target_images_folder', type=str, default="dataset/VisDrone_part/init/images", help='Path to the target images folder.')
     parser.add_argument('--target_labels_folder', type=str, default="dataset/VisDrone_part/init/labels", help='Path to the target labels folder.')
-    parser.add_argument('--copy_images_folder', type=str, default="dataset/VisDrone_part/sample/images", help='Path to the folder where selected images will be copied.')
-    parser.add_argument('--copy_labels_folder', type=str, default="dataset/VisDrone_part/sample/labels", help='Path to the folder where selected labels will be copied.')
-    parser.add_argument('--methods', nargs='+', default=['flip', 'hsv', 'blur', 'noise', 'spatial_dropout', 'channel_wise_dropout', 'conf_noise'], help='Perturbation methods to apply. Options: flip, hsv, blur, noise, spatial_dropout, channel_wise_dropout, conf_noise')
-    parser.add_argument('--num', type=int, default=500, help='Number of images to select after perturbations.')
+    parser.add_argument('--copy_images_folder', type=str, default="dataset/VisDrone_part/sample6/images", help='Path to the folder where selected images will be copied.')
+    parser.add_argument('--copy_labels_folder', type=str, default="dataset/VisDrone_part/sample6/labels", help='Path to the folder where selected labels will be copied.')
+    parser.add_argument('--methods', nargs='+', default=['flip', 'hsv', 'blur', 'noise', 'spatial_dropout'], help='Perturbation methods to apply. Options: flip, hsv, blur, noise, spatial_dropout, channel_dropout, conf_noise')
+    parser.add_argument('--spatial_dropout_probability', default=0.1)
+    parser.add_argument('--channel_dropout_probability', default=0.1)
+    parser.add_argument('--noise_level', default=0.1)
+    parser.add_argument('--num', type=int, default=1000, help='Number of images to select after perturbations.')
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -209,4 +212,4 @@ if __name__ == '__main__':
 
     select_and_copy_files(args.source_images_folder, args.source_labels_folder, args.target_images_folder, args.target_labels_folder,
                           args.copy_images_folder, args.copy_labels_folder, model_backbone, device, n=args.num,
-                          perturbation_methods=args.methods)
+                          perturbation_methods=args.methods, spatial_dropout_probability=args.spatial_dropout_probability,channel_dropout_probability=args.channel_dropout_probability, noise_level=args.noise_level)
