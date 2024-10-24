@@ -50,11 +50,11 @@ def gaussian_blur(img, kernel_size=(5, 5), sigma=1.0):
     """
     return cv2.GaussianBlur(img, kernel_size, sigma)
 
-def add_noise(features, noise_level=0.1):
+def add_noise(features, std=0.1):
     """
     给特征添加高斯噪声。
     """
-    noise = torch.randn_like(features) * noise_level
+    noise = torch.randn_like(features) * std
     return features + noise
 
 def spatial_dropout(features, p=0.1):
@@ -67,11 +67,11 @@ def channel_dropout(features, p=0.1):
     mask = torch.nn.functional.dropout2d(mask, p=p, training=True)
     return features * mask
 
-def add_noise_to_confidence(confidences, noise_level=0.1):
+def add_noise_to_confidence(confidences, std=0.1):
     """
     对置信度添加高斯噪声。
     """
-    noise = torch.randn_like(confidences) * noise_level
+    noise = torch.randn_like(confidences) * std
     return confidences + noise
 
 def calculate_entropy(features):
@@ -85,7 +85,7 @@ def calculate_entropy(features):
 
 
 def select_and_copy_files(source_images_folder, source_labels_folder, target_images_folder, target_labels_folder,
-                          copy_images_folder, copy_labels_folder, model_backbone, device, n=100, perturbation_methods=None, spatial_dropout_probability=0.1, channel_dropout_probability=0.1, noise_level=0.1):
+                          copy_images_folder, copy_labels_folder, model_backbone, device, n=100, perturbation_methods=None, spatial_dropout_probability=0.1, channel_dropout_probability=0.1, std=0.1, std_conf=0.1):
     if perturbation_methods is None:
         perturbation_methods = []
     # 读取源文件夹中的所有文件
@@ -133,7 +133,7 @@ def select_and_copy_files(source_images_folder, source_labels_folder, target_ima
         perturbed_features = features.clone()
 
         if 'noise' in perturbation_methods:
-            perturbed_features = add_noise(perturbed_features)
+            perturbed_features = add_noise(perturbed_features, std=std)
 
         if 'spatial_dropout' in perturbation_methods:
             perturbed_features = spatial_dropout(perturbed_features, spatial_dropout_probability)
@@ -153,7 +153,7 @@ def select_and_copy_files(source_images_folder, source_labels_folder, target_ima
                 pred = non_max_suppression(pred, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, max_det=1000)[0]
                 if pred is not None and len(pred):
                     confidences = pred[:, 4]  # 获取原始置信度
-                    perturbed_confidences = add_noise_to_confidence(confidences, noise_level=noise_level)
+                    perturbed_confidences = add_noise_to_confidence(confidences, std=std_conf)
                     original_conf_entropy = calculate_entropy(confidences.unsqueeze(0))  # 计算原始置信度的信息熵
                     perturbed_conf_entropy = calculate_entropy(perturbed_confidences.unsqueeze(0))  # 计算扰动后置信度的信息熵
                     entropy_diff = torch.abs(perturbed_conf_entropy - original_conf_entropy).mean().item()
@@ -192,9 +192,11 @@ if __name__ == '__main__':
     parser.add_argument('--copy_images_folder', type=str, default="dataset/VisDrone_part/sample6/images", help='Path to the folder where selected images will be copied.')
     parser.add_argument('--copy_labels_folder', type=str, default="dataset/VisDrone_part/sample6/labels", help='Path to the folder where selected labels will be copied.')
     parser.add_argument('--methods', nargs='+', default=['flip', 'hsv', 'blur', 'noise', 'spatial_dropout'], help='Perturbation methods to apply. Options: flip, hsv, blur, noise, spatial_dropout, channel_dropout, conf_noise')
-    parser.add_argument('--spatial_dropout_probability', default=0.1)
+    parser.add_argument('--spatial_dropout_probability', default=0.3)
     parser.add_argument('--channel_dropout_probability', default=0.1)
-    parser.add_argument('--noise_level', default=0.1)
+    parser.add_argument('--std', default=0.1, help="std for feature")
+    parser.add_argument('--std_conf', default=0.1, help="std for confidence")
+
     parser.add_argument('--num', type=int, default=1000, help='Number of images to select after perturbations.')
     args = parser.parse_args()
 
@@ -212,4 +214,4 @@ if __name__ == '__main__':
 
     select_and_copy_files(args.source_images_folder, args.source_labels_folder, args.target_images_folder, args.target_labels_folder,
                           args.copy_images_folder, args.copy_labels_folder, model_backbone, device, n=args.num,
-                          perturbation_methods=args.methods, spatial_dropout_probability=args.spatial_dropout_probability,channel_dropout_probability=args.channel_dropout_probability, noise_level=args.noise_level)
+                          perturbation_methods=args.methods, spatial_dropout_probability=args.spatial_dropout_probability,channel_dropout_probability=args.channel_dropout_probability, std=args.std, std_conf=args.std_conf)
