@@ -122,15 +122,20 @@ def select_and_copy_files(source_images_folder, source_labels_folder, target_ima
 
         if 'blur' in perturbation_methods:
             perturbed_img = gaussian_blur(perturbed_img)
-
+        # 图像级扰动之后的图像
         perturbed_img = letterbox(img, 1280, stride=32, auto=False)[0]
         perturbed_img = perturbed_img.transpose((2, 0, 1))[::-1]  # HWC 转 CHW，BGR 转 RGB
         perturbed_img = np.ascontiguousarray(perturbed_img)
         im = torch.from_numpy(perturbed_img).to(device).float()
         im = im.unsqueeze(0) / 255.0  # 添加批次维度并归一化
-        # 提取原始特征
-        features = extract_features(model_backbone, im)
-        perturbed_features = features.clone()
+        perturbed_features = extract_features(model_backbone, im)  # 提取特征
+        # 原始图像
+        origin_img = letterbox(img, 1280, stride=32, auto=False)[0]
+        origin_img = origin_img.transpose((2, 0, 1))[::-1]
+        origin_img = np.ascontiguousarray(origin_img)
+        im_origin = torch.from_numpy(origin_img).to(device).float()
+        im_origin = im_origin.unsqueeze(0) / 255.0  # 添加批次维度并归一化
+        origin_features = extract_features(model_backbone, im_origin)   # 提取原始图像特征
 
         if 'noise' in perturbation_methods:
             perturbed_features = add_noise(perturbed_features, std=std)
@@ -148,19 +153,25 @@ def select_and_copy_files(source_images_folder, source_labels_folder, target_ima
         # 目标级扰动
         if 'conf_noise' in perturbation_methods:
             with torch.no_grad():
+                # 扰动之后的预测
                 pred = combined_model(im)
                 pred = pred[0][1]
                 pred = non_max_suppression(pred, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, max_det=1000)[0]
-                if pred is not None and len(pred):
-                    confidences = pred[:, 4]  # 获取原始置信度
+                # 原始图像的预测
+                pred_origin = combined_model(im_origin)
+                pred_origin = pred_origin[0][1]
+                pred_origin = non_max_suppression(pred_origin, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, max_det=1000)[0]
+                if pred is not None and pred_origin is not None:
+                    confidences = pred[:, 4]  # 扰动之后预测置信度
+                    confidences_origin = pred_origin[:, 4]  # 原始图像输入置信度
                     perturbed_confidences = add_noise_to_confidence(confidences, std=std_conf)
-                    original_conf_entropy = calculate_entropy(confidences.unsqueeze(0))  # 计算原始置信度的信息熵
+                    original_conf_entropy = calculate_entropy(confidences_origin.unsqueeze(0))  # 计算原始置信度的信息熵
                     perturbed_conf_entropy = calculate_entropy(perturbed_confidences.unsqueeze(0))  # 计算扰动后置信度的信息熵
                     entropy_diff = torch.abs(perturbed_conf_entropy - original_conf_entropy).mean().item()
                     file_scores.append((img_name, entropy_diff))
         else:
             # 如果没有使用目标级扰动，则计算特征级扰动的熵差
-            original_entropy = calculate_entropy(features)
+            original_entropy = calculate_entropy(origin_features)
             perturbed_entropy = calculate_entropy(perturbed_features)
             entropy_diff = torch.abs(perturbed_entropy - original_entropy).mean().item()
             file_scores.append((img_name, entropy_diff))
@@ -191,7 +202,7 @@ if __name__ == '__main__':
     parser.add_argument('--target_labels_folder', type=str, default="dataset/VisDrone_part/init/labels", help='Path to the target labels folder.')
     parser.add_argument('--copy_images_folder', type=str, default="dataset/VisDrone_part/sample6/images", help='Path to the folder where selected images will be copied.')
     parser.add_argument('--copy_labels_folder', type=str, default="dataset/VisDrone_part/sample6/labels", help='Path to the folder where selected labels will be copied.')
-    parser.add_argument('--methods', nargs='+', default=['flip', 'hsv', 'blur', 'noise', 'spatial_dropout'], help='Perturbation methods to apply. Options: flip, hsv, blur, noise, spatial_dropout, channel_dropout, conf_noise')
+    parser.add_argument('--methods', nargs='+', default=['noise', 'spatial_dropout'], help='Perturbation methods to apply. Options: flip, hsv, blur, noise, spatial_dropout, channel_dropout, conf_noise')
     parser.add_argument('--spatial_dropout_probability', default=0.3)
     parser.add_argument('--channel_dropout_probability', default=0.1)
     parser.add_argument('--std', default=0.1, help="std for feature")
