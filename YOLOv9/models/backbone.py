@@ -57,7 +57,7 @@ class DetectionModelBackboneFeature(BaseModel):
             m.bias_init()  # only run once
 
         # Init weights, biases
-        initialize_weights(self)
+        # initialize_weights(self)
         self.info()
         LOGGER.info('')
 
@@ -116,8 +116,7 @@ class DetectionModelCombined(BaseModel):
             self.stride = m.stride
             m.bias_init()  # only run once
 
-        # Init weights, biases
-        initialize_weights(self)
+        self.model = self.model.eval()
         self.info()
         LOGGER.info('')
 
@@ -135,6 +134,7 @@ class DetectionModelCombined(BaseModel):
                     self.backbone_features = None  # 只替换一次
                     # print(f"Replacing: Input shape matches backbone_features.shape")
             y.append(x if m.i in self.save else None)  # save output
+
         return x
 
 
