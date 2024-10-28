@@ -202,7 +202,7 @@ if __name__ == '__main__':
     parser.add_argument('--target_labels_folder', type=str, default="dataset/VisDrone_part/init/labels", help='Path to the target labels folder.')
     parser.add_argument('--copy_images_folder', type=str, default="dataset/VisDrone_part/sample6/images", help='Path to the folder where selected images will be copied.')
     parser.add_argument('--copy_labels_folder', type=str, default="dataset/VisDrone_part/sample6/labels", help='Path to the folder where selected labels will be copied.')
-    parser.add_argument('--methods', nargs='+', default=['noise', 'spatial_dropout'], help='Perturbation methods to apply. Options: flip, hsv, blur, noise, spatial_dropout, channel_dropout, conf_noise')
+    parser.add_argument('--methods', nargs='+', default=['flip', 'hsv', 'blur', 'noise', 'spatial_dropout', 'channel_dropout', 'conf_noise'], help='Perturbation methods to apply. Options: flip, hsv, blur, noise, spatial_dropout, channel_dropout, conf_noise')
     parser.add_argument('--spatial_dropout_probability', default=0.3)
     parser.add_argument('--channel_dropout_probability', default=0.1)
     parser.add_argument('--std', default=0.1, help="std for feature")
