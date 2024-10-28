@@ -123,7 +123,7 @@ def select_and_copy_files(source_images_folder, source_labels_folder, target_ima
         if 'blur' in perturbation_methods:
             perturbed_img = gaussian_blur(perturbed_img)
         # 图像级扰动之后的图像
-        perturbed_img = letterbox(img, 1280, stride=32, auto=False)[0]
+        perturbed_img = letterbox(perturbed_img, 1280, stride=32, auto=False)[0]
         perturbed_img = perturbed_img.transpose((2, 0, 1))[::-1]  # HWC 转 CHW，BGR 转 RGB
         perturbed_img = np.ascontiguousarray(perturbed_img)
         im = torch.from_numpy(perturbed_img).to(device).float()
